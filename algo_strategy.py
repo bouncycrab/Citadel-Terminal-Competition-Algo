@@ -131,32 +131,19 @@ class AlgoStrategy(gamelib.AlgoCore):
                     #scout_spawn_location_options = [[13, 0], [14, 0]]
                     #best_location = self.least_damage_spawn_location(game_state, scout_spawn_location_options)
                     #game_state.attempt_spawn(SCOUT, best_location, 1000)
-                    self.corner_scout_attack(game_state)
+                    #self.corner_scout_attack(game_state)
+                    self.scout_rush(game_state)
 
                 # Lastly, if we have spare SP, let's build some supports
                 #support_locations = [[13, 2], [14, 2], [13, 3], [14, 3]]
                 #game_state.attempt_spawn(SUPPORT, support_locations)
                 
     def early_scout_rush(self,game_state):
-        #Fuck them with scouts
-        #friendly_edges = game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
-        
-        # Remove locations that are blocked by our own structures 
-        # since we can't deploy units there.
-        #deploy_locations = self.filter_blocked_locations(friendly_edges, game_state)
-        
-        #If they use the same corner strategies
         deploy_locations = [[5,8],[6,7],[7,6],[21,7],[20,6],[22,8],[19,5],[8,5],[18,4],[9,4],[17,3],[10,3],[16,2],[11,2],[15,1],[12,1],[14,0],[13,0]]
         while game_state.get_resource(MP) >= game_state.type_cost(SCOUT)[MP] and len(deploy_locations) > 0:
-            # Choose a random deploy location.
             deploy_index = random.randint(0, len(deploy_locations) - 1)
-            deploy_location = deploy_locations[deploy_index]
-            
+            deploy_location = deploy_locations[deploy_index] 
             game_state.attempt_spawn(SCOUT, deploy_location)
-            """
-            We don't have to remove the location since multiple mobile 
-            units can occupy the same space.
-            """
     def spawn_important_turrets(self,game_state):
         turret_locations = [[[3,12],[24,12],[9,9],[18,9]]]
         game_state.attempt_spawn(TURRET, turret_locations)
@@ -171,6 +158,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             if game_state.contains_stationary_unit(location) and game_state.contains_stationary_unit(location).unit_type == WALL:
                 wall_locations.append(location)
         sorted(wall_locations, key=lambda x: x[1], reverse=True)
+        wall_locations=filter(lambda x: x[1] > 11, wall_locations)
         game_state.attempt_upgrade(wall_locations)
         
         
@@ -217,7 +205,12 @@ class AlgoStrategy(gamelib.AlgoCore):
         # Turret locations
         #turret_locations = [[6, 11], [21, 11], [13, 7]]
         #4 turret start
-        turret_locations = [[3,12],[24,12],[9,9],[18,9],[2,12],[25,12]]
+        turret_locations = [[3,12],[24,12],[9,9],[18,9]]
+        game_state.attempt_spawn(TURRET, turret_locations)
+        game_state.attempt_upgrade(turret_locations)
+        
+    def build_midgame_defences(self, game_state):
+        turret_locations = [[3,12],[24,12],[9,9],[18,9],[2,12],[25,12],[21,10],[6,10],[1,12],[26,12]]
         game_state.attempt_spawn(TURRET, turret_locations)
         game_state.attempt_upgrade(turret_locations)
         
@@ -228,7 +221,7 @@ class AlgoStrategy(gamelib.AlgoCore):
     def early_middle_walls(self,game_state):
         #wall_locations = [[1,13],[2,13],[3,13],[4,12],[26,13],[25,13],[24,13],[23,12]]
         #game_state.attempt_spawn(WALL, wall_locations) #IDK IF working as intended, but basically i want to fix the side walls before building middle walls
-        wall_locations = [[1,13],[2,13],[3,13],[4,12],[26,13],[25,13],[24,13],[23,12],[6,11],[7,10],[8,10],[9,10],[10,10],[21,11],[20,10],[19,10],[18,10],[17,10],[11,10],[12,10],[15,10],[16,10]]
+        wall_locations = [[0,13],[27,13],[1,13],[2,13],[3,13],[4,12],[26,13],[25,13],[24,13],[23,12],[6,11],[7,10],[8,10],[9,10],[10,10],[21,11],[20,10],[19,10],[18,10],[17,10],[11,10],[12,10],[15,10],[16,10]]
         game_state.attempt_spawn(WALL, wall_locations)
         
     def corner_scout_attack(self,game_state):
