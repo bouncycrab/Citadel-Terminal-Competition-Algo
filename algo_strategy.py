@@ -5,20 +5,6 @@ import warnings
 from sys import maxsize
 import json
 
-
-"""
-Most of the algo code you write will be in this file unless you create new
-modules yourself. Start by modifying the 'on_turn' function.
-
-Advanced strategy tips: 
-
-  - You can analyze action frames by modifying on_action_frame function
-
-  - The GameState.map object can be manually manipulated to create hypothetical 
-  board states. Though, we recommended making a copy of the map to preserve 
-  the actual current map state.
-"""
-
 class AlgoStrategy(gamelib.AlgoCore):
     def __init__(self):
         super().__init__()
@@ -27,9 +13,6 @@ class AlgoStrategy(gamelib.AlgoCore):
         gamelib.debug_write('Random seed: {}'.format(seed))
 
     def on_game_start(self, config):
-        """ 
-        Read in config and perform any initial setup here 
-        """
         gamelib.debug_write('Configuring your custom algo strategy...')
         self.config = config
         global WALL, SUPPORT, TURRET, SCOUT, DEMOLISHER, INTERCEPTOR, MP, SP
@@ -41,80 +24,43 @@ class AlgoStrategy(gamelib.AlgoCore):
         INTERCEPTOR = config["unitInformation"][5]["shorthand"]
         MP = 1
         SP = 0
-        # This is a good place to do initial setup
         self.scored_on_locations = []
 
     def on_turn(self, turn_state):
-        """
-        This function is called every turn with the game state wrapper as
-        an argument. The wrapper stores the state of the arena and has methods
-        for querying its state, allocating your current resources as planned
-        unit deployments, and transmitting your intended deployments to the
-        game engine.
-        """
-
         game_state = gamelib.GameState(self.config, turn_state)
-        #game_state.attempt_spawn(DEMOLISHER, [24, 10], 3)
         gamelib.debug_write('Performing turn {} of your custom algo strategy'.format(game_state.turn_number))
-        #game_state.suppress_warnings(True)  #Comment or remove this line to enable warnings.
-        needs_repair = False
-        middle_wall_location =[]
-        for i in range (7,21):
-            middle_wall_location.append([i,10])
-        for location in middle_wall_location:
-            if game_state.contains_stationary_unit(location):
-                needs_repair = True
-        if needs_repair:
-            for location in middle_wall_location:
-                game_state.attempt_spawn(WALL, location)
         self.starter_strategy(game_state)
-
         game_state.submit_turn()
-        
-        
-    def turn_strategy(self, game_state):
-        # Check for delayed attack strategy
-        self.attack_delay -= 1
-        if self.attack_delay < 0:
-            self.attack_status = "NO_ATTACK"
-            self.build_exceptions = []
-        else: 
-            self.attack_status = "WAITING_TO_ATTACK"
+    # def turn_strategy(self, game_state):
+    #     # Check for delayed attack strategy
+    #     self.attack_delay -= 1
+    #     if self.attack_delay < 0:
+    #         self.attack_status = "NO_ATTACK"
+    #         self.build_exceptions = []
+    #     else: 
+    #         self.attack_status = "WAITING_TO_ATTACK"
         
         # Build Intial Defense Configuration on Turn 0
-        if game_state.turn_number == 0:
-            self.build_initial_defenses(game_state)
-            self.remove_base_buildings(game_state)
-            return
+        # if game_state.turn_number == 0:
+        #     self.build_initial_defenses(game_state)
+        #     self.remove_base_buildings(game_state)
+        #     return
         
-        # Build Core Defenses
-        self.build_defenses(game_state, self.core_queue)
+        # # Build Core Defenses
+        # self.build_defenses(game_state, self.core_queue)
 
-        # Offensive Moves
-        self.determine_attack_strategy(game_state)
+        # # Offensive Moves
+        # self.determine_attack_strategy(game_state)
 
-        # Defensive Moves
-        self.build_additional_defenses(game_state)
-        self.remove_base_buildings(game_state)
+        # # Defensive Moves
+        # self.build_additional_defenses(game_state)
+        # self.remove_base_buildings(game_state)
 
-    """
-    NOTE: All the methods after this point are part of the sample starter-algo
-    strategy and can safely be replaced for your custom algo.
-    """
+
+
 
     def starter_strategy(self, game_state):
-        """
-        For defense we will use a spread out layout and some interceptors early on.
-        We will place turrets near locations the opponent managed to score on.
-        For offense we will use long range demolishers if they place stationary units near the enemy's front.
-        If there are no stationary units to attack in the front, we will send Scouts to try and score quickly.
-        """
-        # First, place basic defenses
         self.build_defences(game_state)
-        # Fuck em with scouts
-        #self.early_scout_rush(game_state)
-
-        # If the turn is less than 5, fuck them with scouts
         if game_state.turn_number in [1,2]:
             self.early_walls(game_state)
             
@@ -122,7 +68,21 @@ class AlgoStrategy(gamelib.AlgoCore):
             #self.spawn_important_turrets(game_state)
             #self.spawn_important_walls(game_state)
         if game_state.turn_number == 3:
+            self.corner_scout_attack(game_state)
+            
+        if game_state.turn_number == 4:
             self.stall_with_interceptors(game_state)
+            self.early_middle_walls(game_state)
+            
+        if game_state.turn_number == 8:
+            self.build_midgame_defences(game_state)
+            
+        if game_state.turn_number == 14:
+            self.build_midgame_defences(game_state)
+        
+        if game_state.get_resource(SP)>=12:
+            self.build_midgame_defences(game_state)
+            
             
         else:
             # Now let's analyze the enemy base to see where their defenses are concentrated.
@@ -147,7 +107,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                     self.demolish_corner(game_state)
                 
                 
-                if game_state.turn_number % 3 == 1:
+                if game_state.turn_number % 3 == 1 and game_state.turn_number > 3:
                     self.corner_scout_attack(game_state)
                 location = [[]]
                 #if game_state.turn_number % 3 == 0 and game_state.turn_number > 10:
@@ -247,9 +207,12 @@ class AlgoStrategy(gamelib.AlgoCore):
         game_state.attempt_upgrade(turret_locations)
         
     def build_midgame_defences(self, game_state):
-        turret_locations = [[3,12],[24,12],[9,9],[18,9],[4,12],[23,12],[21,10],[6,10],[1,12],[26,12]]
+        turret_locations = [[3,12],[24,12],[9,9],[18,9],[4,12],[23,12],[21,10],[6,10]]
         game_state.attempt_spawn(TURRET, turret_locations)
         game_state.attempt_upgrade(turret_locations)
+        wall_locations = [[3,13],[24,13],[9,10],[18,10],[5,12],[23,13],[24,13],[22,12],[4,13]] #Maybe add 0,13 27,13?
+        game_state.attempt_spawn(WALL, wall_locations)
+        game_state.attempt_upgrade(wall_locations)
         
         
     wall_priority = [[3,13],[24,13],[9,10],[18,10]]
@@ -280,10 +243,12 @@ class AlgoStrategy(gamelib.AlgoCore):
                 for path_location in path:
                     damage += len(game_state.get_attackers(path_location, 0)) * gamelib.GameUnit(TURRET, game_state.config).damage_i
             damages.append(damage)
-        while game_state.get_resource(MP) >= game_state.type_cost(SCOUT)[MP]  > 0:
-            attack_locations = deploy_locations[damages.index(min(damages))]
-            
-            game_state.attempt_spawn(SCOUT, attack_locations)
+        
+        attack_locations = deploy_locations[damages.index(min(damages))]
+        support_location = [attack_locations[0],attack_locations[1]+2]
+        game_state.attempt_spawn(SUPPORT, support_location,1)
+        
+        game_state.attempt_spawn(SCOUT, attack_locations,50)
     
     # Additional walls or upgrades can be added here if resources allow
 
@@ -310,14 +275,15 @@ class AlgoStrategy(gamelib.AlgoCore):
         deploy_locations = self.filter_blocked_locations(friendly_edges, game_state)
         
         # While we have remaining MP to spend lets send out interceptors randomly.
-
-        deploy_location = [[4,9],[3,10],[21,7],[22,8]]
-        
-        game_state.attempt_spawn(INTERCEPTOR, deploy_location)
-        """
-        We don't have to remove the location since multiple mobile 
-        units can occupy the same space.
-        """
+        while game_state.get_resource(MP) >= game_state.type_cost(INTERCEPTOR)[MP] and len(deploy_locations) > 0:
+            # Choose a random deploy location.
+            deploy_location = [[4,9],[3,10]]
+            
+            game_state.attempt_spawn(INTERCEPTOR, deploy_location)
+            """
+            We don't have to remove the location since multiple mobile 
+            units can occupy the same space.
+            """
 
     def demolisher_line_strategy(self, game_state):
         """
