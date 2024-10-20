@@ -60,6 +60,8 @@ class AlgoStrategy(gamelib.AlgoCore):
 
 
     def starter_strategy(self, game_state):
+        if game_state.turn_number == 0:
+            self.build_defences(game_state)
         if game_state.turn_number in [1,2]:
             self.build_midgame_defences(game_state)
             
@@ -77,7 +79,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                     self.demolish_corner(game_state)
                 if game_state.turn_number % 3 == 1:
                     self.corner_scout_attack(game_state)
-                game_state.support_towers(game_state)
+                #self.support_towers(game_state)
     def corner_wall(self,game_state):
         wall_locations = [[0,13],[1,13],[2,13],[27,13],[26,13],[25,13]]
         game_state.attempt_spawn(WALL, wall_locations)
@@ -87,119 +89,61 @@ class AlgoStrategy(gamelib.AlgoCore):
         support_locations = [[13, 2], [14, 2], [13, 3], [14, 3],[13,4],[14,4],[12,4],[15,4],[11,5],[12,5],[13,5],[14,5],[15,5],[16,5],[17,5]]
         game_state.attempt_spawn(SUPPORT, support_locations)
         game_state.attempt_upgrade(support_locations)
-                
+        
                 
     def demolish_corner(self,game_state):
+        
         middle_wall_location = []
+        wall_location = []
         for i in [0,1,2,25,26,27]:
-            middle_wall_location.append([i,13])
-        for locations in [[3,12],[24,12]]:
-            middle_wall_location.append(locations)
-        for i in range(4,14):
-            middle_wall_location.append([i,11])
-        for i in range(15,24):
-            middle_wall_location.append([i,11])
+            wall_location.append([i,13])
+        for locations in [[3,12],[24,12],[4,11],[23,11],[11,11],[16,11]]:
+            wall_location.append(locations)
+        for i in range(5,11):
+            wall_location.append([i,10])
+        for i in range(17,23):
+            wall_location.append([i,10])
+        
+        middle_wall_location.append([13,8])
         game_state.attempt_spawn(WALL, middle_wall_location)
         
         wall_locations = [[0,13],[1,13],[1,12],[2,12],[2,11],[3,11],[27,13],[26,13],[26,12],[25,12],[25,11],[24,11]]
         for location in wall_locations:
             game_state.attempt_remove(location)
-        upgrade_walls = [[13,11],[15,11],[12,10],[15,10],[12,9],[14,9]]
+        upgrade_walls = [[13,11],[12,10],[15,10],[12,9],[14,9]]
         game_state.attempt_spawn(WALL, upgrade_walls)
         game_state.attempt_upgrade(upgrade_walls)
-        
-        
-                
-    def early_scout_rush(self,game_state):
-        deploy_locations = [[5,8],[6,7],[7,6],[21,7],[20,6],[22,8],[19,5],[8,5],[18,4],[9,4],[17,3],[10,3],[16,2],[11,2],[15,1],[12,1],[14,0],[13,0]]
-        while game_state.get_resource(MP) >= game_state.type_cost(SCOUT)[MP] and len(deploy_locations) > 0:
-            deploy_index = random.randint(0, len(deploy_locations) - 1)
-            deploy_location = deploy_locations[deploy_index] 
-            game_state.attempt_spawn(SCOUT, deploy_location)
-    def spawn_important_turrets(self,game_state):
-        turret_locations = [[[3,12],[24,12],[9,9],[18,9]]]
-        game_state.attempt_spawn(TURRET, turret_locations)
-        game_state.attempt_upgrade(turret_locations)
-        turret_locations = [[6,10],[21,10]]
-        game_state.attempt_spawn(TURRET, turret_locations)
-        game_state.attempt_upgrade(turret_locations)
-        
-    def upgrade_walls(self,game_state):
-        wall_locations = []
-        for location in game_state.game_map:
-            if game_state.contains_stationary_unit(location) and game_state.contains_stationary_unit(location).unit_type == WALL:
-                wall_locations.append(location)
-        wall_locations =sorted(wall_locations, key=lambda x: x[1], reverse=True)
-        wall_locations=list(filter(lambda x: x[1] > 11, wall_locations))
-        game_state.attempt_upgrade(wall_locations)
-        
-        
-        
-        
-    def upgrade_important_turrets(self,game_state):
-        turret_locations = [[13,7],[14,7],[1,12],[26,12],[25,11],[2,11],[2,11],[24,10],[3,10],[23,9],[4,9],[22,8],[5,8],[21,7],[6,7],[20,6],[7,6]]
-        game_state.attempt_upgrade(turret_locations)
-
-        
-    def spawn_important_walls(self,game_state):
-        more_important_wall_locations = [[0,13],[1,13],[2,13],[3,12],[27,13],[26,13],[25,13],[24,12],[4,11],[23,11],[5,10],[22,10],[6,9],[21,9],[7,8],[20,8]]
-        less_important_wall_locations = [[2,12],[25,12]]
-        game_state.attempt_spawn(WALL, more_important_wall_locations)
-        #game_state.attempt_upgrade(more_important_wall_locations)
-        #game_state.attempt_spawn(WALL, less_important_wall_locations)
-    
-    def scout_rush(self,game_state):
-        deploy_locations = [[5,8],[6,7],[7,6],[21,7],[20,6],[22,8],[19,5],[8,5],[18,4],[9,4],[17,3],[10,3],[16,2],[11,2],[15,1],[12,1],[14,0],[13,0]]
-        damages = []
-        for location in deploy_locations:
-            path = game_state.find_path_to_edge(location)
-            damage = 0
-            if path is None:
-                damage = maxsize
-            else:
-                for path_location in path:
-                    damage += len(game_state.get_attackers(path_location, 0)) * gamelib.GameUnit(TURRET, game_state.config).damage_i
-            damages.append(damage)
-        while game_state.get_resource(MP) >= game_state.type_cost(SCOUT)[MP]  > 0:
-            attack_locations = deploy_locations[damages.index(min(damages))]
-            
-            game_state.attempt_spawn(SCOUT, attack_locations)
-            """
-            We don't have to remove the location since multiple mobile 
-            units can occupy the same space.
-            """
-        
-        
 
     def build_defences(self, game_state):
         wall_location = []
         for i in [0,1,2,25,26,27]:
             wall_location.append([i,13])
-        for locations in [[3,12],[24,12]]:
+        for locations in [[3,12],[24,12],[4,11],[23,11],[11,11],[16,11]]:
             wall_location.append(locations)
-        for i in range(4,14):
-            wall_location.append([i,11])
-        for i in range(15,24):
-            wall_location.append([i,11])
+        for i in range(5,11):
+            wall_location.append([i,10])
+        for i in range(17,23):
+            wall_location.append([i,10])
+        
         game_state.attempt_spawn(WALL, wall_location)
         turret_locations = [[11,10],[16,10]]
         game_state.attempt_spawn(TURRET, turret_locations)
         game_state.attempt_upgrade(turret_locations)
         
     def build_midgame_defences(self, game_state):
-        turret_locations = [[11,10],[16,10]]
-        game_state.attempt_spawn(TURRET, turret_locations)
-        game_state.attempt_upgrade(turret_locations)
         wall_location = []
         for i in [0,1,2,25,26,27]:
             wall_location.append([i,13])
-        for locations in [[3,12],[24,12]]:
+        for locations in [[3,12],[24,12],[4,11],[23,11],[11,11],[16,11],[17,11],[10,11]]:
             wall_location.append(locations)
-        for i in range(4,14):
-            wall_location.append([i,11])
-        for i in range(15,24):
-            wall_location.append([i,11])
+        for i in range(5,11):
+            wall_location.append([i,10])
+        for i in range(17,23):
+            wall_location.append([i,10])
         game_state.attempt_spawn(WALL, wall_location)
+        turret_locations = [[11,10],[16,10]]
+        game_state.attempt_spawn(TURRET, turret_locations)
+        game_state.attempt_upgrade(turret_locations)
         wall_location = [[13,11],[12,10],[15,10]]
         game_state.attempt_spawn(WALL, wall_location)
         turret_locations = [[11,9],[15,9]]
@@ -228,25 +172,57 @@ class AlgoStrategy(gamelib.AlgoCore):
         game_state.attempt_spawn(WALL, wall_locations)
         
     def corner_scout_attack(self,game_state):
-        location = [[0,14],[1,15],[2,16],[3,17],[27,14],[26,15],[25,16],[24,17]]
-        deploy_locations = [[12,1],[15,1],[13,0],[14,0],[18,4],[9,4]] #[0,13],[27,13],
-        deploy_locations = self.filter_blocked_locations(deploy_locations, game_state)
-        damages = []
-        for location in deploy_locations:
-            path = game_state.find_path_to_edge(location)
-            damage = 0
-            if path is None:
-                damage = maxsize
+        hasHoleinMiddle = True
+        wall_location = []
+        for i in [2,25]:
+            wall_location.append([i,13])
+        for locations in [[3,12],[24,12],[4,11],[23,11],[11,11],[16,11],[17,11],[10,11]]:
+            wall_location.append(locations)
+        for i in range(5,11):
+            wall_location.append([i,10])
+        for i in range(17,23):
+            wall_location.append([i,10])
+        game_state.attempt_spawn(WALL, wall_location)
+        for location in wall_location:
+            if game_state.contains_stationary_unit(location):
+                hasHoleinMiddle = False
+        
+        
+        if hasHoleinMiddle and game_state.turn_number >20:
+            game_state.attempt_remove([13,8])
+            wall_location = [[12,10],[15,10],[12,9],[14,9],[13,8]]
+            location = [[0,14],[1,15],[2,16],[3,17],[27,14],[26,15],[25,16],[24,17]]
+            deploy_locations = [[12,1],[15,1],[13,0],[14,0],[18,4],[9,4]] #[0,13],[27,13],
+            deploy_locations = self.filter_blocked_locations(deploy_locations, game_state)
+            damages = []
+            for location in deploy_locations:
+                path = game_state.find_path_to_edge(location)
+                damage = 0
+                if path is None:
+                    damage = maxsize
+                else:
+                    for path_location in path:
+                        damage += len(game_state.get_attackers(path_location, 0)) * gamelib.GameUnit(TURRET, game_state.config).damage_i
+                damages.append(damage)
+            
+            attack_locations = deploy_locations[damages.index(min(damages))]
+            support_location = [attack_locations[0],attack_locations[1]+2]
+            game_state.attempt_spawn(SUPPORT, support_location,1)
+            
+            isLeft = attack_locations[0] < 13
+
+            
+            
+            game_state.attempt_spawn(SCOUT, attack_locations,5)
+            
+            if isLeft:
+                game_state.attempt_spawn(SCOUT, [3,10],50)
             else:
-                for path_location in path:
-                    damage += len(game_state.get_attackers(path_location, 0)) * gamelib.GameUnit(TURRET, game_state.config).damage_i
-            damages.append(damage)
-        
-        attack_locations = deploy_locations[damages.index(min(damages))]
-        support_location = [attack_locations[0],attack_locations[1]+2]
-        game_state.attempt_spawn(SUPPORT, support_location,1)
-        
-        game_state.attempt_spawn(SCOUT, attack_locations,50)
+                game_state.attempt_spawn(SCOUT, [24,10],50)
+                
+        else:
+            game_state.attempt_spawn(INTERCEPTOR, [20,6],3)
+            
     
     # Additional walls or upgrades can be added here if resources allow
 
