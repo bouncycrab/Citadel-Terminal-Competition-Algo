@@ -77,7 +77,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                     self.demolish_corner(game_state)
                 if game_state.turn_number % 3 == 1:
                     self.corner_scout_attack(game_state)
-                location = [[]]
+                game_state.support_towers(game_state)
     def corner_wall(self,game_state):
         wall_locations = [[0,13],[1,13],[2,13],[27,13],[26,13],[25,13]]
         game_state.attempt_spawn(WALL, wall_locations)
@@ -90,6 +90,17 @@ class AlgoStrategy(gamelib.AlgoCore):
                 
                 
     def demolish_corner(self,game_state):
+        middle_wall_location = []
+        for i in [0,1,2,25,26,27]:
+            middle_wall_location.append([i,13])
+        for locations in [[3,12],[24,12]]:
+            middle_wall_location.append(locations)
+        for i in range(4,14):
+            middle_wall_location.append([i,11])
+        for i in range(15,24):
+            middle_wall_location.append([i,11])
+        game_state.attempt_spawn(WALL, middle_wall_location)
+        
         wall_locations = [[0,13],[1,13],[1,12],[2,12],[2,11],[3,11],[27,13],[26,13],[26,12],[25,12],[25,11],[24,11]]
         for location in wall_locations:
             game_state.attempt_remove(location)
